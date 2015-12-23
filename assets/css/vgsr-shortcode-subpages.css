@@ -1,0 +1,12 @@
+.vgsr-subpages {
+	display: inline-block;
+}
+
+.vgsr-subpages .hentry {
+	float: left;
+	width: 50%;
+}
+
+.vgsr-subpages .hentry.odd {
+	clear: both;
+}

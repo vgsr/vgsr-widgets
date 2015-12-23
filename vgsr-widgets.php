@@ -69,27 +69,31 @@ final class VGSR_Widgets {
 
 		/** Versions **********************************************************/
 
-		$this->version     = '1.0.0';
+		$this->version        = '1.0.0';
 
 		/** Paths *************************************************************/
 
 		// Setup some base path and URL information
-		$this->file        = __FILE__;
-		$this->basename    = plugin_basename( $this->file );
-		$this->plugin_dir  = plugin_dir_path( $this->file );
-		$this->plugin_url  = plugin_dir_url ( $this->file );
+		$this->file           = __FILE__;
+		$this->basename       = plugin_basename( $this->file );
+		$this->plugin_dir     = plugin_dir_path( $this->file );
+		$this->plugin_url     = plugin_dir_url ( $this->file );
 
 		// Widgets
-		$this->widgets_dir = trailingslashit( $this->plugin_dir . 'widgets' );
-		$this->widgets_url = trailingslashit( $this->plugin_url . 'widgets' );
+		$this->widgets_dir    = trailingslashit( $this->plugin_dir . 'widgets' );
+		$this->widgets_url    = trailingslashit( $this->plugin_url . 'widgets' );
+
+		// Shortcodes
+		$this->shortcodes_dir = trailingslashit( $this->plugin_dir . 'shortcodes' );
+		$this->shortcodes_url = trailingslashit( $this->plugin_url . 'shortcodes' );
 
 		// Languages
-		$this->lang_dir    = trailingslashit( $this->plugin_dir . 'languages' );
+		$this->lang_dir       = trailingslashit( $this->plugin_dir . 'languages' );
 
 		/** Misc **************************************************************/
 
-		$this->extend      = new stdClass();
-		$this->domain      = 'vgsr-widgets';
+		$this->extend         = new stdClass();
+		$this->domain         = 'vgsr-widgets';
 	}
 
 	/**
@@ -104,6 +108,9 @@ final class VGSR_Widgets {
 
 		// Register widgets
 		add_action( 'widgets_init', array( $this, 'register_widgets' ) );
+
+		// Register shortcodes
+		add_action( 'init', array( $this, 'register_shortcodes' ) );
 	}
 
 	/** Plugin **********************************************************/
@@ -143,7 +150,7 @@ final class VGSR_Widgets {
 		load_plugin_textdomain( $this->domain );
 	}
 
-	/** Public methods **************************************************/
+	/** Widgets *********************************************************/
 
 	/**
 	 * Return our widget class names
@@ -182,6 +189,53 @@ final class VGSR_Widgets {
 			// Register widget
 			if ( class_exists( $class_name ) ) {
 				register_widget( $class_name );
+			}
+		}
+	}
+
+	/** Shortcodes ******************************************************/
+
+	/**
+	 * Return our shortcode class names
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array Widget class names
+	 */
+	public function shortcodes() {
+		return array(
+			'VGSR_Shortcode_Subpages'
+		);
+	}
+
+	/**
+	 * Register our shortcodes
+	 *
+	 * @since 1.0.0
+	 *
+	 * @uses VGSR_Widgets::shortcodes()
+	 * @uses register_widget()
+	 */
+	public function register_shortcodes() {
+
+		// Require base class
+		require_once( $this->shortcodes_dir . 'class-vgsr-shortcode.php' );
+
+		// Walk our shortcodes
+		foreach ( $this->shortcodes() as $class_name ) {
+
+			// Define widget file location
+			$file = $this->shortcodes_dir . 'class-' . strtolower( str_replace( '_', '-', $class_name ) ) . '.php';
+
+			// Load widget file
+			if ( file_exists( $file ) ) {
+				require_once( $file );
+			}
+
+			// Register widget
+			if ( class_exists( $class_name ) ) {
+				$shortcode = new $class_name;
+				$shortcode->register();
 			}
 		}
 	}
