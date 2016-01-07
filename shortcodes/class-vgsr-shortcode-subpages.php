@@ -81,7 +81,7 @@ class VGSR_Shortcode_Subpages extends VGSR_Shortcode {
 		// Define query args
 		if ( $atts['pages'] ) {
 			$query_args['post__in']  = wp_parse_id_list( $atts['pages'] );
-			$query_arsg['post_type'] = 'any';
+			$query_args['post_type'] = 'any';
 		} else {
 			$query_args['post_parent'] = get_the_ID();
 			$query_args['post_type']   = $atts['post_type'];
