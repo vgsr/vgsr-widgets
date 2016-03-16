@@ -161,7 +161,8 @@ final class VGSR_Widgets {
 	 */
 	public function widgets() {
 		return array(
-			'VGSR_Latest_Post_Widget'
+			'VGSR_Ketel1_Widget',
+			'VGSR_Latest_Post_Widget',
 		);
 	}
 
