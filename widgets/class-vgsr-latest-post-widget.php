@@ -64,22 +64,20 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 		// Walk all found posts and define the post's markup
 		while ( $query->have_posts() ) : $query->the_post(); ?>
 
-		<div class="latest-post">
+		<?php echo $args['before_title']; ?>
+			<a href="<?php the_permalink(); ?>" title="<?php printf( __( 'Posted on %s', 'vgsr-widgets' ), esc_html( get_the_date() ) ); ?>">
+				<?php the_title(); ?>
+			</a>
+		<?php echo $args['after_title']; ?>
+
+		<div class="widget-content">
 			<?php if ( has_post_thumbnail() ) : ?>
 				<a href="<?php the_permalink(); ?>" class="post-thumbnail">
 					<?php the_post_thumbnail( $instance['thumbnail_size'] ); ?>
 				</a>
 			<?php endif; ?>
 
-			<?php echo $args['before_title']; ?>
-				<a href="<?php the_permalink(); ?>" title="<?php printf( __( 'Posted on %s', 'vgsr-widgets' ), esc_html( get_the_date() ) ); ?>">
-					<?php the_title(); ?>
-				</a>
-			<?php echo $args['after_title']; ?>
-
-			<div class="widget-content">
-				<?php $this->the_content( $instance ); ?>
-			</div>
+			<?php $this->the_content( $instance ); ?>
 		</div>
 
 		<?php endwhile;
