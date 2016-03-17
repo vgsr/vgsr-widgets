@@ -11,7 +11,7 @@
  * Plugin Name:       VGSR Widgets
  * Description:       A variety of custom widgets for vgsr.nl
  * Plugin URI:        https://github.com/vgsr/vgsr-widgets/
- * Version:           1.0.0
+ * Version:           0.1.0
  * Author:            Laurens Offereins
  * Author URI:        https://github.com/lmoffereins/
  * Text Domain:       vgsr-widgets
@@ -69,7 +69,7 @@ final class VGSR_Widgets {
 
 		/** Versions **********************************************************/
 
-		$this->version        = '1.0.0';
+		$this->version        = '0.1.0';
 
 		/** Paths *************************************************************/
 
