@@ -87,6 +87,10 @@ final class VGSR_Widgets {
 		$this->shortcodes_dir = trailingslashit( $this->plugin_dir . 'shortcodes' );
 		$this->shortcodes_url = trailingslashit( $this->plugin_url . 'shortcodes' );
 
+		// Assets
+		$this->assets_dir     = trailingslashit( $this->plugin_dir . 'assets' );
+		$this->assets_url     = trailingslashit( $this->plugin_url . 'assets' );
+
 		// Languages
 		$this->lang_dir       = trailingslashit( $this->plugin_dir . 'languages' );
 
@@ -105,6 +109,9 @@ final class VGSR_Widgets {
 
 		// Load textdomain
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+
+		// Register scripts
+		add_action( 'wp_loaded', array( $this, 'register_scripts' ) );
 
 		// Register widgets
 		add_action( 'widgets_init', array( $this, 'register_widgets' ) );
@@ -148,6 +155,17 @@ final class VGSR_Widgets {
 
 		// Look in global /wp-content/languages/plugins/
 		load_plugin_textdomain( $this->domain );
+	}
+
+	/**
+	 * Register plugin scripts
+	 *
+	 * @since 1.0.0
+	 *
+	 * @uses wp_register_script()
+	 */
+	public function register_scripts() {
+		wp_register_script( 'vgsr-widgets-admin', $this->assets_url . 'js/admin.js', array( 'jquery' ), $this->version, true );
 	}
 
 	/** Widgets *********************************************************/
