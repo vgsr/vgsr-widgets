@@ -7,7 +7,7 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-A collection of custom widgets for vgsr.nl.
+A collection of custom widgets and shortcodes for vgsr.nl.
 
 == Installation ==
 
