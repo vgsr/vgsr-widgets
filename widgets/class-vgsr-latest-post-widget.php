@@ -27,7 +27,7 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 			'vgsr-latest-post',
 			__( 'Latest Post', 'vgsr-widgets' ),
 			array(
-				'description' => __( 'Display the latest post.', 'vgsr-widgets' ),
+				'description' => __( 'Display the latest post', 'vgsr-widgets' ),
 				'classname'   => 'vgsr-latest-post'
 			)
 		);
@@ -45,7 +45,7 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 	 * @uses the_post_thumbnail()
 	 * @uses the_title()
 	 * @uses VGSR_Latest_Post_Widget::the_content()
-	 * @uses VGSR_Latest_Post_Widget::the_blog_link()
+	 * @uses VGSR_Latest_Post_Widget::the_archive_link()
 	 * @uses wp_reset_postdata()
 	 * @param array $args Sidebar markup arguments
 	 * @param array $instance Widget's instance settings
@@ -71,9 +71,9 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 		<?php echo $args['after_title']; ?>
 
 		<div class="widget-content">
-			<?php if ( has_post_thumbnail() ) : ?>
+			<?php if ( $instance['post_thumbnail'] && has_post_thumbnail() ) : ?>
 				<a href="<?php the_permalink(); ?>" class="post-thumbnail">
-					<?php the_post_thumbnail( $instance['thumbnail_size'] ); ?>
+					<?php the_post_thumbnail(); ?>
 				</a>
 			<?php endif; ?>
 
@@ -86,7 +86,7 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 		wp_reset_postdata();
 
 		// Display the blog link
-		$this->the_blog_link( $instance );
+		$this->the_archive_link( $instance );
 
 		// Close widget
 		echo $args['after_widget'];
@@ -125,12 +125,9 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 				 * Post Formats: for the standard post format, include all non-format
 				 * posts, to query posts that were created without post-format support.
 				 */
-				if ( 'post_format' === $taxonomy 
-					&& ( $term = get_term_by( 'slug', 'post-format-standard', $taxonomy ) ) 
-					&& $term->term_id === $term_id 
-				) {
+				if ( 'post_format' === $taxonomy && $term_id == 'standard' ) {
 					$tq = array( $tq );
-					$tq['relation'] = 'OR'; 
+					$tq['relation'] = 'OR';
 					$tq[] = array(
 						'taxonomy' => $taxonomy,
 						'operator' => 'NOT EXISTS'
@@ -168,7 +165,7 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 	private function the_content( $instance ) {
 
 		// Gallery post
-		if ( $gallery = get_post_gallery( 0, false ) ) {
+		if ( $instance['the_gallery'] && $gallery = get_post_gallery( 0, false ) ) {
 
 			// Get the gallery attachment ids
 			$att_ids = explode( ',', $gallery['ids'] );
@@ -178,29 +175,61 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 				shuffle( $att_ids );
 			}
 
+			// Add image link filter to point to the post
+			add_filter( 'attachment_link', 'get_the_permalink', 10, 0 );
+
 			// Parse shortcode and keep first x images
-			echo do_shortcode( sprintf( '[gallery ids=%s columns=%d]', 
-				implode( ',', array_slice( $att_ids, 0, $instance['gallery_amount'] ) ),
+			echo do_shortcode( sprintf( '[gallery ids=%s columns=%d]',
+				implode( ',', array_slice( $att_ids, 0, $instance['gallery_count'] ) ),
 				$instance['gallery_columns']
 			) );
+
+			// Remove image link filter
+			remove_filter( 'attachment_link', 'get_the_permalink', 10 );
 
 		// Default post
 		} else {
 
 			// Show full post
-			if ( $instance['full_content'] ) {
+			if ( $instance['the_content'] ) {
 				the_content();
 
 			// Show excerpt
 			} else {
+
+				// Add read-more filter
+				add_filter( 'get_the_excerpt', array( $this, 'excerpt_read_more' ) );
+
 				the_excerpt();
 
-				// Define read more link
-				/* translators: %s: Name of current post */
-				$more_link_text = sprintf( __( 'Continue reading %s <span class="meta-nav">&rarr;</span>', 'vgsr-widgets' ), the_title( '<span class="screen-reader-text">"', '"</span>', false ) );
-				echo apply_filters( 'the_content_more_link', sprintf( '<a href="%s" class="more-link">%s</a>', esc_url( get_permalink() ), $more_link_text ), $more_link_text );
+				// Remove read-more filter
+				remove_filter( 'get_the_excerpt', array( $this, 'excerpt_read_more' ) );
 			}
 		}
+	}
+
+	/**
+	 * Append a Read More link to the post excerpt
+	 *
+	 * @since 1.0.0
+	 *
+	 * @see get_the_excerpt()
+	 *
+	 * @uses the_title()
+	 * @uses apply_filters() Calls 'the_content_more_link'
+	 * @uses get_permalink()
+	 *
+	 * @param string $excerpt Post excerpt
+	 * @param WP_Post $post The post. Since WP 4.5
+	 * @return string Post excerpt
+	 */
+	public function excerpt_read_more( $excerpt, $post = null ) {
+
+		/* translators: %s: Name of current post */
+		$link_text = sprintf( __( 'Continue reading %s <span class="meta-nav">&rarr;</span>', 'vgsr-widgets' ), the_title( '<span class="screen-reader-text">"', '"</span>', false ) );
+		$excerpt .= apply_filters( 'the_content_more_link', sprintf( ' <a href="%s" class="more-link">%s</a>', esc_url( get_permalink() ), $link_text ), $link_text );
+
+		return $excerpt;
 	}
 
 	/**
@@ -215,14 +244,14 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 	 * @uses get_permalink()
 	 * @param array $instance Widget's instance settings
 	 */
-	private function the_blog_link( $instance ) {
+	private function the_archive_link( $instance ) {
 
 		// Bail when the blog link is not requested
-		if ( ! $instance['show_blog_link'] )
+		if ( ! $instance['archive_link'] )
 			return;
 
 		// Define local variable(s)
-		$blog_link_text = $blog_link_url = false;
+		$archive_link_text = $archive_link_url = false;
 
 		// Handle post formats
 		if ( isset( $instance['taxonomy']['post_format'] ) ) {
@@ -246,9 +275,9 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 				'audio'    => _x( 'Audios',    'Post format', 'vgsr-widgets' ),
 			);
 
-			$plural         = isset( $strings[ $format ] ) ? $strings[ $format ] : __( 'Posts', 'vgsr-widgets' );
-			$blog_link_text = sprintf( _x( 'Show all %s &rarr;', 'Read more post formats link', 'vgsr-widgets' ), strtolower( $plural ) );
-			$blog_link_url  = get_post_format_link( $format );
+			$plural            = isset( $strings[ $format ] ) ? $strings[ $format ] : __( 'Posts', 'vgsr-widgets' );
+			$archive_link_text = sprintf( _x( 'Show all %s &rarr;', 'Read more post formats link', 'vgsr-widgets' ), strtolower( $plural ) );
+			$archive_link_url  = get_post_format_link( $format );
 
 		// Handle categories
 		} else if ( $instance['taxonomy'] ) {
@@ -257,19 +286,19 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 			$taxonomy = key( $instance['taxonomy'] );
 			$term     = get_term_by( 'id', $instance['taxonomy'][ $taxonomy ], $taxonomy );
 			if ( $term && ! is_wp_error( $term ) ) {
-				$blog_link_text = sprintf( _x( 'Show all %s posts &rarr;', 'Read more term posts link', 'vgsr-widgets' ), $term->name );
-				$blog_link_url  = get_term_link( $term );
+				$archive_link_text = sprintf( _x( 'Show all %s &rarr;', 'Read more term posts link', 'vgsr-widgets' ), $term->name );
+				$archive_link_url  = get_term_link( $term );
 			}
 		}
 
 		// Define defaults
-		if ( ! $blog_link_text )
-			$blog_link_text = __( 'Show all posts &rarr;', 'vgsr-widgets' );
-		if ( ! $blog_link_url )
-			$blog_link_url  = 'page' == get_option( 'show_on_front' ) ? get_permalink( get_option( 'page_for_posts' ) ) : bloginfo( 'url' );
+		if ( ! $archive_link_text )
+			$archive_link_text = __( 'Show all &rarr;', 'vgsr-widgets' );
+		if ( ! $archive_link_url )
+			$archive_link_url = get_post_type_archive_link( $instance['post_type'] );
 
 		// Output blog link
-		printf( '<p class="blog-link"><a href="%s">%s</a></p>', esc_url( $blog_link_url ), esc_html( $blog_link_text ) );
+		printf( '<p class="blog-link"><a href="%s">%s</a></p>', esc_url( $archive_link_url ), esc_html( $archive_link_text ) );
 	}
 
 	/**
@@ -287,107 +316,144 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 		global $wp_taxonomies;
 
 		$instance   = $this->parse_defaults( $instance );
-		$post_types = get_post_types( array( 'public' => true ), 'objects' ); 
+		$post_types = get_post_types( array( 'public' => true ), 'objects' );
+
+		// Enqueue form script
+		wp_enqueue_script( 'vgsr-widgets-admin' );
+
 		?>
 
-		<p>
-			<label for="<?php echo $this->get_field_id( 'post_type' ); ?>"><?php esc_html_e( 'Post Type', 'vgsr-widgets' ); ?></label>
-			<select id="<?php echo $this->get_field_id( 'post_type' ); ?>" name="<?php echo $this->get_field_name( 'post_type' ); ?>" class="widefat">
-				<?php foreach ( $post_types as $post_type ) : ?>
-				<option value="<?php echo esc_attr( $post_type->name ); ?>" <?php selected( $post_type->name, $instance['post_type'] ); ?>><?php echo $post_type->labels->name; ?></option>
-				<?php endforeach; ?>
-			</select>
-		</p>
-
-		<?php
-
-		// Loop all taxonomies for the available post types
-		foreach ( $wp_taxonomies as $taxonomy => $args ) {
-
-			// Bail for non-public post type taxonomies
-			$tax_post_types = array_intersect( $args->object_type, wp_list_pluck( $post_types, 'name' ) );
-			if ( ! $tax_post_types )
-				continue;
-
-			// Define default selected tax term
-			if ( ! isset( $instance['taxonomy'][ $taxonomy ] ) ) {
-				$instance['taxonomy'][ $taxonomy ] = false;
-			}
-
-			// Get used taxonomy terms
-			$terms = get_terms( $taxonomy, array( 'hide_empty' => true ) );
-			if ( $terms ) : ?>
-
-			<?php // TODO: use js to toggle the associated post type taxonomies ?>
-			<p class="<?php echo implode( ' ', array_map( function( $v ) { return "post-type_$v"; }, $tax_post_types ) ); ?>">
-				<label for="<?php echo $this->get_field_id( "{$taxonomy}_terms" ); ?>"><?php echo $args->labels->name; ?></label>
-				<select id="<?php echo $this->get_field_id( "{$taxonomy}_terms" ); ?>" name="<?php echo $this->get_field_name( 'taxonomy' ) . "[$taxonomy]"; ?>" class="widefat">
-					<option value=""><?php echo esc_html( _x( 'All', 'Select taxonomy term', 'vgsr-widgets' ) ); ?></option>
-					<?php foreach ( $terms as $term ) : ?>
-						<option value="<?php echo esc_attr( $term->term_id ); ?>" <?php selected( $term->term_id, $instance['taxonomy'][ $taxonomy ] ); ?>><?php echo esc_html( $term->name ); ?></option>
+		<div class="post-query">
+			<p>
+				<label for="<?php echo $this->get_field_id( 'post_type' ); ?>"><?php esc_html_e( 'Post Type', 'vgsr-widgets' ); ?></label>
+				<select id="<?php echo $this->get_field_id( 'post_type' ); ?>" name="<?php echo $this->get_field_name( 'post_type' ); ?>" class="post_type widefat">
+					<?php foreach ( $post_types as $post_type ) : ?>
+					<option value="<?php echo esc_attr( $post_type->name ); ?>" <?php selected( $post_type->name, $instance['post_type'] ); ?>><?php echo $post_type->labels->name; ?></option>
 					<?php endforeach; ?>
 				</select>
 			</p>
 
-			<?php endif;
-		}
+			<?php
 
-		/* Content parameters */
+			// Loop all taxonomies for the available post types
+			foreach ( $wp_taxonomies as $taxonomy => $args ) {
 
-		?>
+				// Bail for non-public post type taxonomies
+				$tax_post_types = array_intersect( $args->object_type, wp_list_pluck( $post_types, 'name' ) );
+				if ( ! $tax_post_types )
+					continue;
 
-		<h4><?php esc_html_e( 'Content', 'vgsr-widgets' ); ?></h4>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'full_content' ); ?>">
-				<input id="<?php echo $this->get_field_id( 'full_content' ); ?>" name="<?php echo $this->get_field_name( 'full_content' ); ?>" type="checkbox" <?php checked( $instance['full_content'] ); ?>/>
-				<?php esc_html_e( 'Show the full content instead of the post excerpt', 'vgsr-widgets' ); ?>
-			</label>
+				// Define default selected tax term
+				if ( ! isset( $instance['taxonomy'][ $taxonomy ] ) ) {
+					$instance['taxonomy'][ $taxonomy ] = false;
+				}
 
-			<br/>
-			<label class="post-type_post" for="<?php echo $this->get_field_id( 'show_blog_link' ); ?>">
-				<input id="<?php echo $this->get_field_id( 'show_blog_link' ); ?>" name="<?php echo $this->get_field_name( 'show_blog_link' ); ?>" type="checkbox" <?php checked( $instance['show_blog_link'] ); ?>/>
-				<?php esc_html_e( 'Show link to the full blog', 'vgsr-widgets' ); ?>
-			</label>
+				// Get used taxonomy terms
+				$terms = get_terms( $taxonomy, array( 'hide_empty' => true ) );
+				if ( $terms ) :
 
-			<br/>
-			<label for="<?php echo $this->get_field_id( 'thumbnail_size' ); ?>">
-				<input id="<?php echo $this->get_field_id( 'thumbnail_size' ); ?>" name="<?php echo $this->get_field_name( 'thumbnail_size' ); ?>" type="checkbox" <?php checked( $instance['thumbnail_size'] ); ?>/>
-				<?php esc_html_e( 'The post featured image size', 'vgsr-widgets' ); ?>
-			</label>
-		</p>
+					// Post Formats
+					if ( 'post_format' == $taxonomy ) {
+						$standard = new stdClass;
+						$standard->term_id = 'standard';
+						$standard->name = _x( 'Standard', 'Post format' ); // WP's definition
 
-		<?php
+						// Prepend Standard format
+						$terms = array_merge( array( $standard ), $terms );
+					}
 
-		/* Gallery parameters */
+					$tax_style = in_array( $instance['post_type'], $tax_post_types ) ? '' : ' style="display:none;"'; ?>
 
-		?>
+				<?php // TODO: use js to toggle the associated post type taxonomies ?>
+				<p class="<?php echo implode( ' ', array_map( function( $v ) { return "post-type_{$v}"; }, $tax_post_types ) ); ?>" <?php echo $tax_style; ?>>
+					<label for="<?php echo $this->get_field_id( "{$taxonomy}_terms" ); ?>"><?php echo $args->labels->name; ?></label>
+					<select id="<?php echo $this->get_field_id( "{$taxonomy}_terms" ); ?>" name="<?php echo $this->get_field_name( 'taxonomy' ) . "[$taxonomy]"; ?>" class="widefat">
+						<option value=""><?php echo esc_html( _x( 'All', 'Select taxonomy term', 'vgsr-widgets' ) ); ?></option>
+						<?php foreach ( $terms as $term ) : ?>
+							<option value="<?php echo esc_attr( $term->term_id ); ?>" <?php selected( $term->term_id, $instance['taxonomy'][ $taxonomy ] ); ?>><?php echo $term->name; ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
 
-		<h4><?php esc_html_e( 'Gallery', 'vgsr-widgets' ); ?></h4>
-		<p class="description"><?php esc_html_e( 'The following settings apply to posts that contain galleries.', 'vgsr-widgets' ); ?></p>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'gallery_amount' ); ?>">
-				<?php printf( 
-					/* translators: input field */
-					__( 'Display a maximum of %s images.', 'vgsr-widgets' ),
-					'<input id="' . $this->get_field_id( 'gallery_amount' ) . '" name="' . $this->get_field_name( 'gallery_amount' ) . '" type="number" style="width:65px;" step="1" value="' . esc_attr( $instance['gallery_amount'] ) . '" />'
-				); ?>
-			</label>
+				<?php endif;
+			}
 
-			<br/>
-			<label for="<?php echo $this->get_field_id( 'gallery_columns' ); ?>">
-				<?php printf( 
-					/* translators: input field */
-					__( 'Display the images within %s columns.', 'vgsr-widgets' ),
-					'<input id="' . $this->get_field_id( 'gallery_columns' ) . '" name="' . $this->get_field_name( 'gallery_columns' ) . '" type="number" style="width:65px;" step="1" value="' . esc_attr( $instance['gallery_columns'] ) . '" />'
-				); ?>
-			</label>
+			?>
 
-			<br/>
-			<label for="<?php echo $this->get_field_id( 'gallery_random' ); ?>">
-				<input id="<?php echo $this->get_field_id( 'gallery_random' ); ?>" name="<?php echo $this->get_field_name( 'gallery_random' ); ?>" type="checkbox" <?php checked( $instance['gallery_random'] ); ?>/>
-				<?php esc_html_e( 'Show a random selection of images', 'vgsr-widgets' ); ?>
-			</label>
-		</p>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'offset' ); ?>"><?php esc_html_e( 'Skip Post(s)', 'vgsr-widgets' ); ?></label>
+				<input type="number" id="<?php echo $this->get_field_id( 'offset' ); ?>" name="<?php echo $this->get_field_name( 'offset' ); ?>" value="<?php echo esc_attr( $instance['offset'] ); ?>" min="0" step="1" />
+			</p>
+		</div>
+
+		<?php /* Content parameters */ ?>
+
+		<div class="post-content">
+			<h4><?php esc_html_e( 'Content', 'vgsr-widgets' ); ?></h4>
+			<p>
+				<label for="<?php echo $this->get_field_id( 'post_thumbnail' ); ?>">
+					<input id="<?php echo $this->get_field_id( 'post_thumbnail' ); ?>" name="<?php echo $this->get_field_name( 'post_thumbnail' ); ?>" type="checkbox" <?php checked( $instance['post_thumbnail'] ); ?>/>
+					<?php esc_html_e( 'Display the featured image', 'vgsr-widgets' ); ?>
+				</label>
+
+				<br/>
+				<label for="<?php echo $this->get_field_id( 'the_content' ); ?>">
+					<input id="<?php echo $this->get_field_id( 'the_content' ); ?>" name="<?php echo $this->get_field_name( 'the_content' ); ?>" type="checkbox" <?php checked( $instance['the_content'] ); ?>/>
+					<?php esc_html_e( 'Display the full post content (instead of excerpt)', 'vgsr-widgets' ); ?>
+				</label>
+
+				<br/>
+				<label for="<?php echo $this->get_field_id( 'the_gallery' ); ?>">
+					<input id="<?php echo $this->get_field_id( 'the_gallery' ); ?>" name="<?php echo $this->get_field_name( 'the_gallery' ); ?>" type="checkbox" <?php checked( $instance['the_gallery'] ); ?> class="post_gallery" />
+					<?php esc_html_e( 'Display a gallery preview instead of the content', 'vgsr-widgets' ); ?>
+				</label>
+
+				<?php
+					$archive_post_types   = wp_list_pluck( wp_list_filter( $post_types, array( 'has_archive' => true ) ), 'name' );
+					$archive_post_types[] = 'post';
+					$archive_style = in_array( $instance['post_type'], $archive_post_types ) ? '' : ' style="display:none;"';
+				?>
+
+				<br/>
+				<label class="<?php echo implode( ' ', array_map( function( $v ) { return "post-type_{$v}"; }, $archive_post_types ) ); ?>" for="<?php echo $this->get_field_id( 'archive_link' ); ?>" <?php echo $archive_style; ?>>
+					<input id="<?php echo $this->get_field_id( 'archive_link' ); ?>" name="<?php echo $this->get_field_name( 'archive_link' ); ?>" type="checkbox" <?php checked( $instance['archive_link'] ); ?>/>
+					<?php esc_html_e( 'Display the archive link', 'vgsr-widgets' ); ?>
+				</label>
+			</p>
+		</div>
+
+		<?php /* Gallery parameters */ ?>
+
+		<div class="post-gallery" style="<?php if ( ! $instance['the_gallery'] ) echo 'display:none;'; ?>">
+			<h4><?php esc_html_e( 'Gallery', 'vgsr-widgets' ); ?></h4>
+			<p><?php
+
+				// Input: image count
+				$image_count_input  = sprintf( '<select id="%s" name="%s">', $this->get_field_id( 'gallery_count' ), $this->get_field_name( 'gallery_count' ) );
+				$image_count_input .= '<option value="0">' . __( 'All images', 'vgsr-widgets' ) . '</option>';
+				for ( $i = 1; $i < 11; $i++ ) {
+					$image_count_input .= sprintf( '<option value="%s">%s</option>', $i, sprintf( _n( '%d image', '%d images', $i, 'vgsr-widgets' ), $i ) );
+				}
+				$image_count_input .= '</select>';
+
+				// Input: image order
+				$image_order_input  = sprintf( '<select id="%s" name="%s">', $this->get_field_id( 'gallery_random' ), $this->get_field_name( 'gallery_random' ) );
+				$image_order_input .= '<option value="0">' . _x( 'as-is', 'Image order', 'vgsr-widgets' ) . '</option>';
+				$image_order_input .= '<option value="1">' . _x( 'randomly', 'Image order', 'vgsr-widgets' ) . '</option>';
+				$image_order_input .= '</select>';
+
+				// Input: column count
+				$column_count_input  = sprintf( '<select id="%s" name="%s">', $this->get_field_id( 'gallery_columns' ), $this->get_field_name( 'gallery_columns' ) );
+				for ( $i = 1; $i < 5; $i++ ) {
+					$column_count_input .= sprintf( '<option value="%s">%s</option>', $i, sprintf( _n( '%d column', '%d columns', $i, 'vgsr-widgets' ), $i ) );
+				}
+				$column_count_input .= '</select>';
+
+				/* translators: 1. image count 2. order/random 3. column count */
+				printf( 'For galleries, display %1$s %2$s in %3$s.', $image_count_input, $image_order_input, $column_count_input );
+
+			?></p>
+		</div>
 
 		<?php
 	}
@@ -424,6 +490,16 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 			if ( ! is_bool( $value ) )
 				continue;
 
+			// Skip archive link for post types without archives
+			if ( 'archive_link' == $key ) {
+				$archive_post_types   = get_post_types( array( 'has_archive' => true ), 'name' );
+				$archive_post_types[] = 'post';
+
+				if ( ! in_array( $instance['post_type'], $archive_post_types ) ) {
+					$new_instance[ $key ] = false;
+				}
+			}
+
 			// Checkbox empty? Set to false
 			if ( ! isset( $new_instance[ $key ] ) ) {
 				$new_instance[ $key ] = false;
@@ -445,25 +521,25 @@ class VGSR_Latest_Post_Widget extends WP_Widget {
 		return wp_parse_args( $instance, array(
 
 			// Query args
-			// 'p'               => 15533, // With gallery
-			// 'p'               => 14541, // With embedded image
 			'posts_per_page'  => 1,
 			'post_type'       => 'post',
 			'post_status'     => 'publish',
 			'orderby'         => 'date',
 			'order'           => 'DESC',
+			'offset'          => 0,
 
-			// Semi-query args
+			// Query dummy
 			'taxonomy'        => array(),
 
-			// Content vars
-			'thumbnail_size'  => false,
-			'full_content'    => false,
-			'show_blog_link'  => true,
+			// Content
+			'post_thumbnail'  => false,
+			'the_content'     => false,
+			'the_gallery'     => false,
+			'archive_link'    => false,
 
-			// Gallery vars
+			// Gallery
 			'gallery_random'  => true,
-			'gallery_amount'  => 4,
+			'gallery_count'   => 4,
 			'gallery_columns' => 2,
 		) );
 	}
