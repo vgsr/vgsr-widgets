@@ -116,6 +116,9 @@ final class VGSR_Widgets {
 		// Register widgets
 		add_action( 'widgets_init', array( $this, 'register_widgets' ) );
 
+		// Parse shortcodes on the text widget
+		add_filter( 'widget_text', 'do_shortcode' );
+
 		// Register shortcodes
 		add_action( 'init', array( $this, 'register_shortcodes' ) );
 	}
