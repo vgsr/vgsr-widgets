@@ -1,0 +1,28 @@
+/**
+ * Styles for the VGSR Recent Posts widget
+ *
+ * @pacakage VGSR Widgets
+ * @subpackage Widgets
+ */
+.vgsr_recent_posts li:first-child {
+	margin-top: 0;
+}
+
+.vgsr_recent_posts li.has-post-thumbnail {
+	min-height: calc(4.5em);
+}
+
+	.vgsr_recent_posts .post-thumbnail {
+		float: left;
+		margin: 0 15px 15px 0;
+	}
+
+	/* Force line break before this element */
+	.vgsr_recent_posts li > a:first-of-type + *:before {
+		content: '\A';
+		white-space: pre;
+	}
+
+	.vgsr_recent_posts .post-date {
+		color: rgba(64, 64, 64, 0.8);
+	}
