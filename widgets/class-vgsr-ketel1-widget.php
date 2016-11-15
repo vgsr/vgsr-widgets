@@ -49,6 +49,11 @@ class VGSR_Ketel1_Widget extends WP_Widget {
 		// Wrap widget
 		echo $args['before_widget'];
 
+		// Parse defaults
+		$instance = wp_parse_args( $instance, array(
+			'post_id' => false
+		) );
+
 		// Define the image link url
 		if ( $instance['post_id'] && $post = get_post( $instance['post_id'] ) ) {
 			$url = get_permalink( $post );
