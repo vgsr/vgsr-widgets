@@ -184,6 +184,7 @@ final class VGSR_Widgets {
 		return array(
 			'VGSR_Ketel1_Widget',
 			'VGSR_Latest_Post_Widget',
+			'VGSR_Paascongres2017_Widget',
 			'VGSR_Recent_Posts_Widget',
 		);
 	}
