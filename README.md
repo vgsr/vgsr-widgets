@@ -29,4 +29,4 @@ This plugin is not hosted in the official WordPress repository. Instead, updatin
 
 ## Contribution ##
 
-You can contribute to the development of this plugin by creating issues and PR's in the plugin's [GitHub repository](https://github.com/lmoffereins/vgsr-widgets/).
+You can contribute to the development of this plugin by creating issues and PR's in the plugin's [GitHub repository](https://github.com/vgsr/vgsr-widgets/).
