@@ -13,14 +13,14 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The VGSR Paascongres 2017 Widget Class
  * 
- * @since 1.0.0
+ * @since 0.4.0
  */
 class VGSR_Paascongres2017_Widget extends WP_Widget {
 
 	/**
 	 * Construct the widget
 	 *
-	 * @since 1.0.0
+	 * @since 0.4.0
 	 */
 	public function __construct() {
 		parent::__construct(
@@ -36,7 +36,7 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 	/**
 	 * Output the widget's display contents
 	 *
-	 * @since 1.0.0
+	 * @since 0.4.0
 	 *
 	 * @param array $args Sidebar markup arguments
 	 * @param array $instance Widget's instance settings
@@ -71,7 +71,7 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 	/**
 	 * Output the widget's form contents
 	 *
-	 * @since 1.0.0
+	 * @since 0.4.0
 	 *
 	 * @param array $instance Widget's instance settings
 	 */
@@ -96,7 +96,7 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 	/**
 	 * Update the widget's settings
 	 *
-	 * @since 1.0.0
+	 * @since 0.4.0
 	 * 
 	 * @param array $new_instance New settings
 	 * @param array $old_instance Old settings
