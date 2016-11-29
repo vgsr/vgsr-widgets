@@ -47,9 +47,7 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 		echo $args['before_widget'];
 
 		// Parse defaults
-		$instance = wp_parse_args( $instance, array(
-			'site_id' => false
-		) );
+		$instance = $this->parse_defaults( $instance );
 
 		// Define the image link url
 		if ( $instance['site_id'] && $site = get_site( $instance['site_id'] ) ) {
@@ -72,16 +70,19 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 	 *
 	 * @param array $instance Widget's instance settings
 	 */
-	public function form( $instance ) { ?>
+	public function form( $instance ) {
+
+		// Parse defaults
+		$instance = $this->parse_defaults( $instance ); ?>
 
 		<p>
-			<label for="<?php echo $this->get_field_id( 'site_id' ); ?>"><?php esc_html_e( 'Link to', 'vgsr-widgets' ); ?>:</label>
+			<label for="<?php echo $this->get_field_id( 'site_id' ); ?>"><?php esc_html_e( 'Link destination', 'vgsr-widgets' ); ?>:</label>
 			<select id="<?php echo $this->get_field_id( 'site_id' ); ?>" name="<?php echo $this->get_field_name( 'site_id' ); ?>">
 				<option value="">&mdash; www.paascongres.nl &mdash;</option>
 
 				<?php foreach ( get_sites( array( 'network_id' => get_network()->id ) ) as $site ) : ?>
 
-				<option value="<?php echo $site->id; ?>"><?php echo $site->blogname; ?></option>
+				<option value="<?php echo $site->id; ?>" <?php selected( $site->id, $instance['site_id'] ); ?>><?php echo $site->blogname; ?></option>
 
 				<?php endforeach; ?>
 			</select>
@@ -105,6 +106,20 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 		$new_instance['site_id'] = get_site( $new_instance['site_id'] ) ? $new_instance['site_id'] : 0;
 
 		return $new_instance;
+	}
+
+	/**
+	 * Parse the widget's default instance parameters
+	 *
+	 * @since 0.4.1
+	 *
+	 * @param array $instance Instance data
+	 * @return array Parsed instance data
+	 */
+	public function parse_defaults( $instance = array() ) {
+		return wp_parse_args( $instance, array(
+			'site_id' => false,
+		) );
 	}
 
 	/**
