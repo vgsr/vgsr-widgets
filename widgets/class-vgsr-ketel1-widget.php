@@ -50,9 +50,7 @@ class VGSR_Ketel1_Widget extends WP_Widget {
 		echo $args['before_widget'];
 
 		// Parse defaults
-		$instance = wp_parse_args( $instance, array(
-			'post_id' => false
-		) );
+		$instance = $this->parse_defaults( $instance );
 
 		// Define the image link url
 		if ( $instance['post_id'] && $post = get_post( $instance['post_id'] ) ) {
@@ -76,7 +74,10 @@ class VGSR_Ketel1_Widget extends WP_Widget {
 	 * @uses wp_dropdown_pages()
 	 * @param array $instance Widget's instance settings
 	 */
-	public function form( $instance ) { ?>
+	public function form( $instance ) {
+
+		// Parse defaults
+		$instance = $this->parse_defaults( $instance ); ?>
 
 		<p>
 			<label for="<?php echo $this->get_field_id( 'post_id' ); ?>"><?php esc_html_e( 'Link to', 'vgsr-widgets' ); ?>:</label>
@@ -84,6 +85,7 @@ class VGSR_Ketel1_Widget extends WP_Widget {
 				'id'                    => $this->get_field_id( 'post_id' ),
 				'name'                  => $this->get_field_name( 'post_id' ),
 				'show_option_no_change' => '&mdash; www.ketel1.nl &mdash;',
+				'selected'              => $instance['post_id'],
 			) ); ?>
 		</p>
 
@@ -101,10 +103,24 @@ class VGSR_Ketel1_Widget extends WP_Widget {
 	 */
 	public function update( $new_instance, $old_instance ) {
 
-		// Parse post ID
+		// Parse settings
 		$new_instance['post_id'] = get_post( $new_instance['post_id'] ) ? $new_instance['post_id'] : 0;
 
 		return $new_instance;
+	}
+
+	/**
+	 * Parse the widget's default instance parameters
+	 *
+	 * @since 0.4.1
+	 *
+	 * @param array $instance Instance data
+	 * @return array Parsed instance data
+	 */
+	public function parse_defaults( $instance = array() ) {
+		return wp_parse_args( $instance, array(
+			'post_id' => false,
+		) );
 	}
 
 	/**
