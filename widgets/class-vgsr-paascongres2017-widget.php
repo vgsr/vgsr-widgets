@@ -57,7 +57,12 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 		}
 
 		// Display the logo. Use data-uri for image
-		printf( '<p><a href="%s" target="_blank" style="display: inline-block; padding: 25px 0; width: 100%%; background: #fff; border: 0; box-shadow: none; vertical-align: bottom; text-align: center;" title="%s">%s</a></p>', esc_url( $url ), esc_attr__( 'Paascongres 2017', 'vgsr-widgets' ), '<img alt="Logo Paascongres 2017" src="' . $this->image_data_uri() . '" />' );
+		printf( '<a href="%s" target="_blank" style="display: inline-block; padding: 25px 0; width: 100%%; background: #fff; border: 0; box-shadow: none; vertical-align: bottom; text-align: center;" title="%s">%s</a>', esc_url( $url ), esc_attr__( 'Paascongres 2017', 'vgsr-widgets' ), '<img alt="Logo Paascongres 2017" src="' . $this->image_data_uri() . '" />' );
+
+		/**
+		 * @see WP_Widget_Text
+		 */
+		echo wpautop( apply_filters( 'widget_text', $instance['text'], $instance, $this ) );
 
 		// End wrap widget
 		echo $args['after_widget'];
@@ -88,6 +93,11 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 			</select>
 		</p>
 
+		<p>
+			<label for="<?php echo $this->get_field_id( 'text' ); ?>"><?php esc_html_e( 'Content', 'vgsr-widgets' ); ?>:</label>
+			<textarea class="widefat" rows="3" cols="20" id="<?php echo $this->get_field_id( 'text' ); ?>" name="<?php echo $this->get_field_name( 'text' ); ?>"><?php echo esc_textarea( $instance['text'] ); ?></textarea>
+		</p>
+
 		<?php
 	}
 
@@ -102,8 +112,9 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 	 */
 	public function update( $new_instance, $old_instance ) {
 
-		// Parse site ID
+		// Parse settings
 		$new_instance['site_id'] = get_site( $new_instance['site_id'] ) ? $new_instance['site_id'] : 0;
+		$new_instance['text']    = ! empty( $new_instance['text'] ) ? $new_instance['text'] : '';
 
 		return $new_instance;
 	}
@@ -119,6 +130,7 @@ class VGSR_Paascongres2017_Widget extends WP_Widget {
 	public function parse_defaults( $instance = array() ) {
 		return wp_parse_args( $instance, array(
 			'site_id' => false,
+			'text'    => '',
 		) );
 	}
 
